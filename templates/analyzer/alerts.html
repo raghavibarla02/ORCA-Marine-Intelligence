@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header with Emergency Siren Controls -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">
+        <i class="bi bi-exclamation-octagon-fill text-danger me-2"></i> Maritime Early Warning System (MEWS)
+      </h3>
+      <p class="text-muted small mb-0">
+        Multi-hazard surveillance for High Waves, Severe Marine Lightning, Cyclones, and International Maritime Boundary Line (IMBL) Geofencing.
+      </p>
+    </div>
+
+    <!-- Siren Test Simulator -->
+    <div class="d-flex align-items-center gap-2">
+      <button class="siren-btn" id="siren-toggle-btn-page">
+        <i class="bi bi-megaphone-fill fs-5"></i>
+        <span>TEST COASTAL SIREN</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Category Filter Tabs: All, High Waves, Lightning, Cyclone, Geofence Warning -->
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-4 p-2 bg-dark bg-opacity-75 rounded-3 border border-secondary border-opacity-25">
+    <span class="text-muted small fw-bold px-2"><i class="bi bi-filter me-1 text-info"></i> Hazard Filter:</span>
+    
+    <a href="{% url 'alerts' %}?category=ALL" class="btn btn-sm {% if selected_category == 'ALL' or not selected_category %}btn-info fw-bold text-dark{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+      All Hazards ({{ counts.total }})
+    </a>
+
+    <a href="{% url 'alerts' %}?category=High Waves" class="btn btn-sm {% if selected_category == 'High Waves' %}btn-info fw-bold text-dark{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+      <i class="bi bi-tsunami me-1"></i> High Waves ({{ counts.high_waves }})
+    </a>
+
+    <a href="{% url 'alerts' %}?category=Lightning" class="btn btn-sm {% if selected_category == 'Lightning' %}btn-warning fw-bold text-dark{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+      <i class="bi bi-lightning-charge-fill me-1"></i> Lightning ({{ counts.lightning }})
+    </a>
+
+    <a href="{% url 'alerts' %}?category=Cyclone" class="btn btn-sm {% if selected_category == 'Cyclone' %}btn-danger fw-bold text-white{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+      <i class="bi bi-tornado me-1"></i> Cyclone ({{ counts.cyclone }})
+    </a>
+
+    <a href="{% url 'alerts' %}?category=Geofence warning" class="btn btn-sm {% if selected_category == 'Geofence warning' %}btn-danger fw-bold text-white{% else %}btn-outline-secondary text-light{% endif %} rounded-pill">
+      <i class="bi bi-slash-circle-fill me-1"></i> Geofence Warning ({{ counts.geofence }})
+    </a>
+  </div>
+
+  <!-- Alerts Feed + Emergency Broadcast Preview -->
+  <div class="row g-4">
+    <!-- Main Alerts List -->
+    <div class="col-lg-8">
+      <div class="orca-card">
+        <div class="orca-card-header">
+          <h5 class="orca-card-title">
+            <i class="bi bi-broadcast-pin text-danger"></i> Active Bulletins Feed
+          </h5>
+          <span class="badge bg-secondary small">Showing {{ alerts|length }} Active Alerts</span>
+        </div>
+
+        <div class="orca-card-body p-3">
+          {% for alert in alerts %}
+            <div class="alert-item border-{{ alert.badge_class }} mb-3 p-3 rounded bg-black bg-opacity-30">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <!-- Severity Badge -->
+                  <span class="badge bg-{{ alert.badge_class }} text-uppercase fw-bold">
+                    {% if alert.severity == 'CRITICAL' %}<i class="bi bi-radioactive me-1"></i>{% endif %}
+                    {{ alert.severity }}
+                  </span>
+                  <!-- Hazard Type Badge -->
+                  <span class="badge bg-dark text-info border border-info border-opacity-25">
+                    <i class="bi {{ alert.icon }} me-1"></i> {{ alert.type|default:alert.category }}
+                  </span>
+                  <span class="text-secondary small fw-bold">#{{ alert.id }}</span>
+                </div>
+                <!-- Timestamp -->
+                <div class="small text-muted">
+                  <i class="bi bi-clock-history me-1 text-info"></i> <strong>Issued:</strong> {{ alert.issued_at }} &bull; <span class="text-secondary">Valid: {{ alert.valid_until }}</span>
+                </div>
+              </div>
+
+              <h5 class="fw-bold text-white mb-2">{{ alert.title }}</h5>
+
+              <div class="d-flex flex-wrap align-items-center gap-3 text-muted small mb-2">
+                <div><i class="bi bi-geo-alt-fill text-danger me-1"></i> <strong>Affected Sector:</strong> {{ alert.region }}</div>
+                <div><i class="bi bi-water text-info me-1"></i> <strong>Wave Height:</strong> {{ alert.wave_height_expected }}</div>
+              </div>
+
+              <p class="text-light small mb-3">
+                {{ alert.summary }}
+              </p>
+
+              <div class="p-2 rounded bg-{{ alert.badge_class }} bg-opacity-10 border border-{{ alert.badge_class }} border-opacity-25 text-{{ alert.badge_class }} small">
+                <i class="bi bi-shield-fill-exclamation me-1"></i> <strong>Directive Action:</strong> {{ alert.action_required }}
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-shield-check fs-1 text-success mb-2 d-block"></i>
+              No active alerts matching the selected category filter.
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Emergency Simulation Panel -->
+    <div class="col-lg-4">
+      <!-- Broadcast SMS Preview -->
+      <div class="orca-card mb-4">
+        <div class="orca-card-header">
+          <h6 class="orca-card-title mb-0">
+            <i class="bi bi-phone-vibrate text-warning"></i> Fisherman SMS Broadcast Simulator
+          </h6>
+        </div>
+        <div class="orca-card-body p-3">
+          <p class="small text-muted mb-3">
+            Simulated multilingual flash alert dispatched through coastal cellular masts to 45,000+ registered marine vessels.
+          </p>
+
+          <div class="p-3 rounded bg-black border border-info border-opacity-50 font-monospace small text-info mb-3" style="font-size: 0.8rem; line-height: 1.5;">
+            [ORCA MULTI-HAZARD ALERT]<br/>
+            SWELL SURGE + LIGHTNING CLUSTER.<br/>
+            ARABIAN SEA / KERALA COAST.<br/>
+            Waves &gt; 3.7m | Lightning strikes active.<br/>
+            DO NOT VENTURE INTO SEA FOR 48 HRS.<br/>
+            Return to harbor immediately.<br/>
+            - INCOIS / ORCA MEWS
+          </div>
+
+          <button class="btn btn-sm btn-outline-info w-100" onclick="alert('Simulated Emergency SMS dispatched to Coastal Fisheries cell towers.');">
+            <i class="bi bi-send me-1"></i> Trigger Test Broadcast
+          </button>
+        </div>
+      </div>
+
+      <!-- Coastal VHF Radio Frequencies -->
+      <div class="orca-card">
+        <div class="orca-card-header">
+          <h6 class="orca-card-title mb-0">
+            <i class="bi bi-reception-4 text-info"></i> Marine VHF Emergency Channels
+          </h6>
+        </div>
+        <div class="orca-card-body p-3 small">
+          <ul class="list-unstyled mb-0">
+            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+              <span class="text-white">Emergency &amp; Distress</span>
+              <strong class="text-danger">Channel 16 (156.8 MHz)</strong>
+            </li>
+            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+              <span class="text-white">Coast Guard IMBL Patrol</span>
+              <strong class="text-info">Channel 12 / 14</strong>
+            </li>
+            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+              <span class="text-white">IMD Cyclone Broadcast</span>
+              <strong class="text-warning">Channel 68</strong>
+            </li>
+            <li class="d-flex justify-content-between py-1">
+              <span class="text-white">Inter-Ship Navigation</span>
+              <strong class="text-success">Channel 06</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const pageSirenBtn = document.getElementById('siren-toggle-btn-page');
+    const navSirenBtn = document.getElementById('siren-toggle-btn');
+
+    if (pageSirenBtn && navSirenBtn) {
+      pageSirenBtn.addEventListener('click', () => {
+        navSirenBtn.click();
+        if (navSirenBtn.classList.contains('active')) {
+          pageSirenBtn.classList.add('active');
+          pageSirenBtn.innerHTML = `<i class="bi bi-volume-mute-fill fs-5"></i><span>SILENCE ALARM</span>`;
+        } else {
+          pageSirenBtn.classList.remove('active');
+          pageSirenBtn.innerHTML = `<i class="bi bi-megaphone-fill fs-5"></i><span>TEST COASTAL SIREN</span>`;
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

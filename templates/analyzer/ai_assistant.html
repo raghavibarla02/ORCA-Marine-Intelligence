@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <h3 class="fw-bold text-white mb-1">
+        <i class="bi bi-robot text-info me-2"></i> ORCA DeepSea Intelligence Console
+      </h3>
+      <p class="text-muted small mb-0">
+        ChatGPT-style multi-turn maritime conversational intelligence with dynamic hydrodynamic evidence inspection.
+      </p>
+    </div>
+
+    <!-- Telemetry Status Indicator -->
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-success bg-opacity-25 text-success border border-success px-3 py-2">
+        <span class="pulse-dot success me-1"></span> Multi-Agent Pipeline Synchronized
+      </span>
+      <button class="btn btn-sm btn-outline-secondary text-muted" id="btn-reset-chat" title="Start New Chat">
+        <i class="bi bi-plus-circle me-1"></i> New Session
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Grid: Left ChatGPT Stream + Right Evidence Panel -->
+  <div class="row g-3">
+    
+    <!-- LEFT COLUMN: ChatGPT-Style Multi-turn Interface -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="chatgpt-container">
+        
+        <!-- Quick Prompt Chips Ribbon -->
+        <div class="p-3 border-bottom border-secondary border-opacity-25 bg-black bg-opacity-30">
+          <div class="text-muted small mb-2 fw-semibold">
+            <i class="bi bi-lightbulb-fill text-warning me-1"></i> Suggested Prompts:
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            {% for query in sample_queries %}
+              <button class="btn btn-sm btn-outline-info rounded-pill dedicated-prompt-chip" style="font-size: 0.78rem;" data-query="{{ query }}">
+                {{ query }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Chat Message Stream -->
+        <div class="chatgpt-stream" id="chatgpt-stream-box">
+          <!-- Welcome Message -->
+          <div class="chat-message-row">
+            <div class="chat-avatar orca">
+              <i class="bi bi-robot fs-5"></i>
+            </div>
+            <div class="chat-content">
+              <h5 class="text-info mb-1">ORCA DeepSea Intelligence v2.4</h5>
+              <p class="mb-2">
+                Welcome, Navigator. I am your autonomous maritime decision agent. I monitor Indian maritime waters, INCOIS wave buoys, Doppler convective storm radars, and chlorophyll bloom zones.
+              </p>
+              <blockquote>
+                <strong>How to use:</strong> Ask about sea state safety for any port, Kallakkadal swell warnings, safe routes to islands, or high-yield Potential Fishing Zones. Inspect the <strong>Right-Hand Evidence Panel</strong> to verify live sensor metrics backing every response.
+              </blockquote>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky Chat Input Bar -->
+        <div class="p-3 bg-dark bg-opacity-95 border-top border-secondary border-opacity-25">
+          <form id="chatgpt-input-form" class="d-flex gap-2">
+            <input type="text" id="chatgpt-user-input" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Ask ORCA AI (e.g. 'Is Mumbai coast safe for fishing today?')">
+            <button type="submit" class="btn btn-info btn-lg px-4 fw-bold" id="chatgpt-send-btn">
+              <i class="bi bi-send-fill me-1"></i> Send
+            </button>
+          </form>
+          <div class="d-flex align-items-center justify-content-between mt-2 text-muted small" style="font-size: 0.72rem;">
+            <span><i class="bi bi-shield-check text-success me-1"></i> Multi-turn memory active &bull; Auto-grounded in hydrodynamic telemetry</span>
+            <span>Press <kbd class="bg-secondary text-white">Enter</kbd> to submit</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Evidence Panel (SST, Wave, Wind, Tide, Risk Score) -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="evidence-sidebar">
+        
+        <div class="d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25 pb-2 mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-medical-fill text-info fs-5"></i>
+            <h6 class="fw-bold text-white mb-0">Live Evidence Inspection</h6>
+          </div>
+          <span class="badge bg-dark text-info border border-info border-opacity-25" id="evidence-station-badge">
+            {{ initial_station.name }}
+          </span>
+        </div>
+
+        <p class="text-muted small mb-3">
+          Telemetry metrics backing the AI Assistant's recommendation:
+        </p>
+
+        <!-- 1. Risk Score Gauge Card -->
+        <div class="evidence-metric-card text-center">
+          <div class="text-muted small fw-bold mb-1">
+            <i class="bi bi-speedometer2 text-info me-1"></i> COMPOSITE RISK SCORE
+          </div>
+          <div class="fs-2 fw-bolder text-{{ initial_condition.status_color }}" id="evidence-risk-score">
+            {{ initial_condition.risk_score }}<span class="fs-6 text-muted"> / 100</span>
+          </div>
+          <span class="badge bg-{{ initial_condition.status_color }} bg-opacity-25 text-{{ initial_condition.status_color }} border border-{{ initial_condition.status_color }} px-3 py-1 mt-1" id="evidence-safety-status">
+            {{ initial_condition.safety_status }}
+          </span>
+        </div>
+
+        <!-- 2. Significant Wave Height -->
+        <div class="evidence-metric-card">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small fw-semibold">Significant Wave Height ($H_s$)</div>
+              <div class="fs-4 fw-bold text-white" id="evidence-wave-val">
+                {{ initial_condition.wave_height }} <span class="fs-6 text-muted">m</span>
+              </div>
+            </div>
+            <div class="p-2 rounded bg-info bg-opacity-15 text-info fs-4">
+              <i class="bi bi-water"></i>
+            </div>
+          </div>
+          <div class="text-muted small mt-1" id="evidence-wave-meta">
+            Swell: {{ initial_condition.swell_height }}m &bull; Period: {{ initial_condition.swell_period }}s ({{ initial_condition.wave_direction }})
+          </div>
+        </div>
+
+        <!-- 3. Wind Velocity & Gusts -->
+        <div class="evidence-metric-card">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small fw-semibold">Surface Wind Velocity</div>
+              <div class="fs-4 fw-bold text-white" id="evidence-wind-val">
+                {{ initial_condition.wind_speed }} <span class="fs-6 text-muted">knots</span>
+              </div>
+            </div>
+            <div class="p-2 rounded bg-primary bg-opacity-15 text-primary fs-4">
+              <i class="bi bi-wind"></i>
+            </div>
+          </div>
+          <div class="text-muted small mt-1" id="evidence-wind-meta">
+            Gusts: {{ initial_condition.wind_gust }} kt &bull; {{ initial_condition.beaufort_scale }}
+          </div>
+        </div>
+
+        <!-- 4. Sea Surface Temperature (SST) -->
+        <div class="evidence-metric-card">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small fw-semibold">Sea Surface Temp (SST)</div>
+              <div class="fs-4 fw-bold text-white" id="evidence-sst-val">
+                {{ initial_condition.sst }} <span class="fs-6 text-muted">°C</span>
+              </div>
+            </div>
+            <div class="p-2 rounded bg-warning bg-opacity-15 text-warning fs-4">
+              <i class="bi bi-thermometer-half"></i>
+            </div>
+          </div>
+          <div class="text-muted small mt-1" id="evidence-sst-meta">
+            Anomaly: {{ initial_condition.sst_anomaly }} &bull; Chlorophyll: {{ initial_condition.chlorophyll }} mg/m³
+          </div>
+        </div>
+
+        <!-- 5. Tide Amplitude & Phase -->
+        <div class="evidence-metric-card">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="text-muted small fw-semibold">Tidal Amplitude</div>
+              <div class="fs-4 fw-bold text-white" id="evidence-tide-val">
+                {{ initial_condition.tide_level }} <span class="fs-6 text-muted">m</span>
+              </div>
+            </div>
+            <div class="p-2 rounded bg-info bg-opacity-15 text-info fs-4">
+              <i class="bi bi-water"></i>
+            </div>
+          </div>
+          <div class="text-muted small mt-1" id="evidence-tide-meta">
+            Phase: {{ initial_condition.tide_phase }} &bull; Next High: {{ initial_condition.next_high_tide }}
+          </div>
+        </div>
+
+        <!-- 6. Lightning & Barometric Pressure -->
+        <div class="p-3 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25 small">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted"><i class="bi bi-lightning-charge text-warning me-1"></i> Lightning:</span>
+            <span class="text-white fw-bold" id="evidence-lightning">{{ initial_condition.lightning_risk }}</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted"><i class="bi bi-speedometer me-1 text-info"></i> Barometer:</span>
+            <span class="text-white fw-bold" id="evidence-barometer">{{ initial_condition.barometric_pressure }} hPa</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const streamBox = document.getElementById('chatgpt-stream-box');
+    const inputForm = document.getElementById('chatgpt-input-form');
+    const userInput = document.getElementById('chatgpt-user-input');
+    const resetBtn = document.getElementById('btn-reset-chat');
+    const allConditions = {{ conditions_json|safe }};
+
+    function appendMessageRow(text, isUser = false) {
+      const row = document.createElement('div');
+      row.className = 'chat-message-row';
+
+      const avatar = document.createElement('div');
+      avatar.className = `chat-avatar ${isUser ? 'user' : 'orca'}`;
+      avatar.innerHTML = isUser ? '<i class="bi bi-person-fill fs-5"></i>' : '<i class="bi bi-robot fs-5"></i>';
+
+      const content = document.createElement('div');
+      content.className = 'chat-content';
+      if (isUser) {
+        content.innerHTML = `<strong class="text-white d-block mb-1">Navigator:</strong><div class="text-light">${escapeHtml(text)}</div>`;
+      } else {
+        content.innerHTML = formatMarkdown(text);
+      }
+
+      row.appendChild(avatar);
+      row.appendChild(content);
+      streamBox.appendChild(row);
+      streamBox.scrollTop = streamBox.scrollHeight;
+    }
+
+    function appendLoadingRow() {
+      const row = document.createElement('div');
+      row.className = 'chat-message-row';
+      row.id = 'chatgpt-loading-row';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'chat-avatar orca';
+      avatar.innerHTML = '<i class="bi bi-robot fs-5"></i>';
+
+      const content = document.createElement('div');
+      content.className = 'chat-content text-muted';
+      content.innerHTML = `<span class="spinner-border spinner-border-sm text-info me-2"></span> Synthesizing telemetry through Collaborative AI Pipeline...`;
+
+      row.appendChild(avatar);
+      row.appendChild(content);
+      streamBox.appendChild(row);
+      streamBox.scrollTop = streamBox.scrollHeight;
+    }
+
+    function removeLoadingRow() {
+      const loader = document.getElementById('chatgpt-loading-row');
+      if (loader) loader.remove();
+    }
+
+    function updateEvidencePanel(stationSlug, evidence) {
+      if (!evidence) return;
+
+      const stBadge = document.getElementById('evidence-station-badge');
+      if (stBadge) stBadge.textContent = stationSlug.toUpperCase();
+
+      const riskScore = document.getElementById('evidence-risk-score');
+      if (riskScore) {
+        riskScore.innerHTML = `${evidence.risk_score}<span class="fs-6 text-muted"> / 100</span>`;
+        riskScore.className = `fs-2 fw-bolder text-${evidence.status_color}`;
+      }
+
+      const safetyStatus = document.getElementById('evidence-safety-status');
+      if (safetyStatus) {
+        safetyStatus.textContent = evidence.safety_status;
+        safetyStatus.className = `badge bg-${evidence.status_color} bg-opacity-25 text-${evidence.status_color} border border-${evidence.status_color} px-3 py-1 mt-1`;
+      }
+
+      const waveVal = document.getElementById('evidence-wave-val');
+      if (waveVal) waveVal.innerHTML = `${evidence.wave_height} <span class="fs-6 text-muted">m</span>`;
+      const waveMeta = document.getElementById('evidence-wave-meta');
+      if (waveMeta) waveMeta.textContent = `Swell: ${evidence.swell_height}m • Period: ${evidence.swell_period}s (${evidence.wave_direction})`;
+
+      const windVal = document.getElementById('evidence-wind-val');
+      if (windVal) windVal.innerHTML = `${evidence.wind_speed} <span class="fs-6 text-muted">knots</span>`;
+      const windMeta = document.getElementById('evidence-wind-meta');
+      if (windMeta) windMeta.textContent = `Gusts: ${evidence.wind_gust} kt • ${evidence.beaufort_scale}`;
+
+      const sstVal = document.getElementById('evidence-sst-val');
+      if (sstVal) sstVal.innerHTML = `${evidence.sst} <span class="fs-6 text-muted">°C</span>`;
+      const sstMeta = document.getElementById('evidence-sst-meta');
+      if (sstMeta) sstMeta.textContent = `Anomaly: ${evidence.sst_anomaly} • Chlorophyll: ${evidence.chlorophyll} mg/m³`;
+
+      const tideVal = document.getElementById('evidence-tide-val');
+      if (tideVal) tideVal.innerHTML = `${evidence.tide_level} <span class="fs-6 text-muted">m</span>`;
+      const tideMeta = document.getElementById('evidence-tide-meta');
+      if (tideMeta) tideMeta.textContent = `Phase: ${evidence.tide_phase} • High: ${evidence.next_high_tide}`;
+
+      const lightningEl = document.getElementById('evidence-lightning');
+      if (lightningEl) lightningEl.textContent = evidence.lightning_risk;
+
+      const baroEl = document.getElementById('evidence-barometer');
+      if (baroEl) baroEl.textContent = `${evidence.barometric_pressure} hPa`;
+    }
+
+    function sendChatGPTMessage(msgText) {
+      const text = msgText || userInput.value.trim();
+      if (!text) return;
+
+      appendMessageRow(text, true);
+      userInput.value = '';
+      appendLoadingRow();
+
+      fetch('/api/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      })
+      .then(res => res.json())
+      .then(data => {
+        removeLoadingRow();
+        appendMessageRow(data.response || 'No response returned.');
+        if (data.station_slug && data.evidence) {
+          updateEvidencePanel(data.station_slug, data.evidence);
+        }
+      })
+      .catch(err => {
+        removeLoadingRow();
+        appendMessageRow('⚠️ Error reaching ORCA DeepSea Intelligence server.');
+      });
+    }
+
+    if (inputForm) {
+      inputForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sendChatGPTMessage();
+      });
+    }
+
+    document.querySelectorAll('.dedicated-prompt-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const query = chip.getAttribute('data-query');
+        if (query) sendChatGPTMessage(query);
+      });
+    });
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        streamBox.innerHTML = `
+          <div class="chat-message-row">
+            <div class="chat-avatar orca"><i class="bi bi-robot fs-5"></i></div>
+            <div class="chat-content">
+              <h5 class="text-info mb-1">New Intelligence Session Initialized</h5>
+              <p class="mb-0 text-muted small">Ask any question regarding ocean safety, routes, swell surge, or fishing hotspots.</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+  });
+</script>
+{% endblock %}

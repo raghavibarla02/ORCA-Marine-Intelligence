@@ -1,0 +1,234 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title|default:"ORCA" }} | Ocean Risk & Condition Analyzer</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{% static 'images/orca_logo.svg' %}">
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Leaflet GIS CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- ORCA Oceanic Custom CSS -->
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+  
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- Sticky Top Navbar -->
+  <header class="orca-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <!-- Desktop Sidebar Toggle -->
+      <button class="btn btn-sm btn-outline-secondary d-none d-lg-inline-flex align-items-center" id="sidebar-toggle-btn" title="Toggle Sidebar">
+        <i class="bi bi-layout-sidebar-inset fs-5 text-info"></i>
+      </button>
+
+      <!-- Mobile Offcanvas Toggle -->
+      <button class="btn btn-sm btn-outline-secondary d-inline-flex d-lg-none align-items-center" id="mobile-sidebar-toggle" title="Menu">
+        <i class="bi bi-list fs-4 text-info"></i>
+      </button>
+
+      <!-- Brand Branding -->
+      <a href="{% url 'home' %}" class="orca-brand">
+        <img src="{% static 'images/orca_logo.svg' %}" alt="ORCA Logo" width="34" height="34" class="rounded-circle">
+        <span class="d-none d-sm-inline fw-bold text-white">ORCA</span>
+        <span class="orca-brand-badge d-none d-md-inline">SIH PROTOTYPE</span>
+      </a>
+    </div>
+
+    <!-- Center Search Bar -->
+    <div class="d-none d-md-flex align-items-center mx-3" style="max-width: 380px; width: 100%;">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-dark border-secondary text-info"><i class="bi bi-search"></i></span>
+        <input type="text" id="global-station-search" class="form-control bg-dark text-white border-secondary" placeholder="Search port (e.g. Kochi, Mumbai, Vizag)...">
+      </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="d-flex align-items-center gap-2 gap-sm-3">
+      <!-- Live Clock -->
+      <div id="live-marine-clock" class="small fw-semibold d-none d-xl-block text-light bg-dark bg-opacity-50 px-3 py-1 rounded-pill border border-secondary border-opacity-25">
+        <i class="bi bi-clock me-1 text-info"></i> Initializing clock...
+      </div>
+
+      <!-- Siren Simulator -->
+      <button class="siren-btn btn-sm" id="siren-toggle-btn" title="Emergency Siren Audio Simulation">
+        <i class="bi bi-megaphone-fill"></i>
+        <span class="d-none d-sm-inline">TEST SIREN</span>
+      </button>
+
+      <!-- Active Alerts Quick Badge -->
+      <a href="{% url 'alerts' %}" class="btn btn-sm btn-outline-danger position-relative d-flex align-items-center gap-1" title="Active Maritime Advisories">
+        <i class="bi bi-bell-fill"></i>
+        <span class="d-none d-md-inline small fw-bold">Alerts</span>
+        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+          <span class="visually-hidden">Alerts active</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <!-- App Wrapper: Collapsible Sidebar + Main Content -->
+  <div id="app-wrapper">
+
+    <!-- Collapsible Sidebar -->
+    <aside class="orca-sidebar" id="orca-sidebar">
+      <div class="sidebar-nav">
+        <div class="sidebar-heading sidebar-header-label">Ocean Surveillance</div>
+        
+        <a href="{% url 'home' %}" class="nav-link {% if active_page == 'home' %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i>
+          <span class="nav-text">Home Dashboard</span>
+        </a>
+
+        <a href="{% url 'ocean_map' %}" class="nav-link {% if active_page == 'map' %}active{% endif %}">
+          <i class="bi bi-map"></i>
+          <span class="nav-text">Ocean Map (GIS)</span>
+        </a>
+
+        <a href="{% url 'ai_assistant' %}" class="nav-link {% if active_page == 'ai_assistant' %}active{% endif %}">
+          <i class="bi bi-robot"></i>
+          <span class="nav-text">AI Assistant</span>
+        </a>
+
+        <div class="sidebar-heading sidebar-header-label mt-3">Navigation & Fisheries</div>
+
+        <a href="{% url 'pfz_routes' %}" class="nav-link {% if active_page == 'pfz_routes' %}active{% endif %}">
+          <i class="bi bi-compass"></i>
+          <span class="nav-text">PFZ & Safe Routes</span>
+        </a>
+
+        <div class="sidebar-heading sidebar-header-label mt-3">Safety & Intelligence</div>
+
+        <a href="{% url 'alerts' %}" class="nav-link {% if active_page == 'alerts' %}active{% endif %}">
+          <i class="bi bi-exclamation-octagon"></i>
+          <span class="nav-text">Maritime Alerts</span>
+          <span class="badge bg-danger ms-auto rounded-pill d-none d-lg-inline-block">5 Active</span>
+        </a>
+
+        <a href="{% url 'analytics' %}" class="nav-link {% if active_page == 'analytics' %}active{% endif %}">
+          <i class="bi bi-graph-up-arrow"></i>
+          <span class="nav-text">Ocean Analytics</span>
+        </a>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-info">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="pulse-dot success"></span>
+            <span class="small fw-bold text-white">ORCA Telemetry</span>
+          </div>
+          <div class="text-muted" style="font-size: 0.72rem;">
+            Simulation Engine v2.4<br/>
+            Modeled on INCOIS / IMD
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="orca-main-content" id="orca-main-content">
+      {% block content %}{% endblock %}
+
+      <!-- Page Footer -->
+      <footer class="mt-5 pt-4 border-top border-secondary border-opacity-25 text-center text-muted small">
+        <div class="container-fluid">
+          <div class="row align-items-center">
+            <div class="col-md-6 text-md-start mb-2 mb-md-0">
+              <span class="text-info fw-bold">ORCA</span> &copy; 2026 – Ocean Risk & Condition Analyzer. Developed for SIH.
+            </div>
+            <div class="col-md-6 text-md-end">
+              <span class="badge bg-secondary bg-opacity-25 text-light me-2">Sample / Mock Data</span>
+              <span class="badge bg-info bg-opacity-25 text-info">Bootstrap 5 + Django 5</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Floating AI Assistant Launcher -->
+  <div class="orca-ai-floater">
+    <button class="ai-fab-button" id="ai-fab-btn" title="Ask ORCA AI Ocean Assistant">
+      <i class="bi bi-chat-dots-fill"></i>
+    </button>
+  </div>
+
+  <!-- Floating AI Quick Chat Modal -->
+  <div class="modal fade" id="aiQuickModal" tabindex="-1" aria-labelledby="aiQuickModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark text-white border border-info border-opacity-50" style="backdrop-filter: blur(16px); background: rgba(10, 25, 47, 0.95) !important;">
+        <div class="modal-header border-secondary border-opacity-25">
+          <div class="d-flex align-items-center gap-2">
+            <div class="bg-info bg-opacity-25 text-info p-2 rounded-circle">
+              <i class="bi bi-robot fs-5"></i>
+            </div>
+            <div>
+              <h5 class="modal-title mb-0 fw-bold" id="aiQuickModalLabel">ORCA DeepSea AI Assistant</h5>
+              <span class="badge bg-success bg-opacity-25 text-success small">Real-time Marine Advisory Bot</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <div class="modal-body p-3">
+          <!-- Suggested Prompt Chips -->
+          <div class="mb-3">
+            <span class="text-muted small d-block mb-1">Quick Prompts:</span>
+            <span class="prompt-chip quick-prompt-chip" data-query="Is Mumbai coast safe for fishing boats today?">Mumbai Safe?</span>
+            <span class="prompt-chip quick-prompt-chip" data-query="Explain the Kallakkadal swell warning in Kochi">Kochi Swell Alert</span>
+            <span class="prompt-chip quick-prompt-chip" data-query="Where are the best Potential Fishing Zones (PFZ) right now?">PFZ Hotspots</span>
+            <span class="prompt-chip quick-prompt-chip" data-query="What is the difference between swell and wind waves?">Swell vs Wave</span>
+          </div>
+
+          <!-- Chat Conversation Scroll Area -->
+          <div id="quick-chat-messages" style="height: 340px; overflow-y: auto; padding: 0.5rem;" class="border border-secondary border-opacity-25 rounded bg-black bg-opacity-25">
+            <div class="chat-bubble-ai">
+              <h5 class="text-info mb-1"><i class="bi bi-water"></i> Welcome to ORCA Ocean Intelligence</h5>
+              <p class="mb-0 text-light small">
+                I can analyze live wave conditions, swell surges, wind velocities, and provide INCOIS-style Potential Fishing Zone guidance. What maritime sector would you like to inspect?
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-secondary border-opacity-25 p-3">
+          <div class="input-group">
+            <input type="text" id="quick-chat-input" class="form-control bg-dark text-white border-secondary" placeholder="Ask about waves, routes, alerts, or ports...">
+            <button class="btn btn-info px-4 fw-bold" id="quick-chat-send">
+              <i class="bi bi-send-fill me-1"></i> Ask AI
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- ORCA Scripts -->
+  <script src="{% static 'js/main.js' %}"></script>
+  <script src="{% static 'js/charts.js' %}"></script>
+  <script src="{% static 'js/ocean_map.js' %}"></script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

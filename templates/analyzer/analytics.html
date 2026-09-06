@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">
+        <i class="bi bi-graph-up-arrow text-info me-2"></i> Ocean Condition Analytics &amp; Anomaly Detection
+      </h3>
+      <p class="text-muted small mb-0">
+        Multi-temporal hydrodynamic telemetry tracking 7-day SST, Wind, Wave, and Satellite Chlorophyll-a dynamics.
+      </p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-2">
+        <i class="bi bi-calendar3 me-1"></i> 7-Day Rolling Telemetry Window
+      </span>
+    </div>
+  </div>
+
+  <!-- Weekly Key Metric Highlights -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="orca-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Max Wave Height Recorded</span>
+          <i class="bi bi-water text-danger fs-5"></i>
+        </div>
+        <div class="fs-3 fw-bold text-white">4.2 <span class="fs-6 text-muted">m</span></div>
+        <div class="text-danger small mt-1">
+          <i class="bi bi-arrow-up me-1"></i> Peak at Kochi Swell Surge (Friday)
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="orca-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Peak SST Anomaly</span>
+          <i class="bi bi-thermometer-high text-warning fs-5"></i>
+        </div>
+        <div class="fs-3 fw-bold text-white">+1.8 <span class="fs-6 text-muted">°C</span></div>
+        <div class="text-warning small mt-1">
+          <i class="bi bi-exclamation-circle me-1"></i> Port Blair (Andaman Coral Reef)
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="orca-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Peak Chlorophyll-a Bloom</span>
+          <i class="bi bi-droplet-half text-success fs-5"></i>
+        </div>
+        <div class="fs-3 fw-bold text-white">3.45 <span class="fs-6 text-muted">mg/m³</span></div>
+        <div class="text-success small mt-1">
+          <i class="bi bi-check2-circle me-1"></i> Mumbai Shelf Edge (High Yield)
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="orca-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Max Wind Gust Velocity</span>
+          <i class="bi bi-wind text-info fs-5"></i>
+        </div>
+        <div class="fs-3 fw-bold text-white">42.0 <span class="fs-6 text-muted">kts</span></div>
+        <div class="text-info small mt-1">
+          <i class="bi bi-speedometer me-1"></i> Kavaratti (Squall Line Transit)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1: 7-Day Wave Trend + 7-Day SST Trend -->
+  <div class="row g-4 mb-4">
+    <!-- Chart 1: Wave Height Trends -->
+    <div class="col-lg-6">
+      <div class="orca-card">
+        <div class="orca-card-header">
+          <h5 class="orca-card-title">
+            <i class="bi bi-water text-info"></i> 7-Day Significant Wave Height Trend
+          </h5>
+          <span class="badge bg-dark text-muted border border-secondary border-opacity-25">Average vs Peak (m)</span>
+        </div>
+        <div class="orca-card-body">
+          <div style="height: 270px; position: relative;">
+            <canvas id="analyticsWaveChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: SST vs Baseline -->
+    <div class="col-lg-6">
+      <div class="orca-card">
+        <div class="orca-card-header">
+          <h5 class="orca-card-title">
+            <i class="bi bi-thermometer-sun text-warning"></i> 7-Day Sea Surface Temperature vs Climatology
+          </h5>
+          <span class="badge bg-dark text-muted border border-secondary border-opacity-25">Observed vs Baseline (°C)</span>
+        </div>
+        <div class="orca-card-body">
+          <div style="height: 270px; position: relative;">
+            <canvas id="analyticsSstChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: 7-Day Surface Wind + 7-Day Chlorophyll Trends -->
+  <div class="row g-4 mb-4">
+    <!-- Chart 3: Wind Velocity Trend -->
+    <div class="col-lg-6">
+      <div class="orca-card">
+        <div class="orca-card-header">
+          <h5 class="orca-card-title">
+            <i class="bi bi-wind text-primary"></i> 7-Day Surface Wind Velocity Profile
+          </h5>
+          <span class="badge bg-dark text-muted border border-secondary border-opacity-25">Knots</span>
+        </div>
+        <div class="orca-card-body">
+          <div style="height: 270px; position: relative;">
+            <canvas id="analyticsWindChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 4: Chlorophyll Concentration Trend -->
+    <div class="col-lg-6">
+      <div class="orca-card">
+        <div class="orca-card-header">
+          <h5 class="orca-card-title">
+            <i class="bi bi-droplet-half text-success"></i> 7-Day Satellite Chlorophyll-a Concentration
+          </h5>
+          <span class="badge bg-success bg-opacity-25 text-success border border-success">mg/m³</span>
+        </div>
+        <div class="orca-card-body">
+          <div style="height: 270px; position: relative;">
+            <canvas id="analyticsChlorophyllChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anomaly Detection Table -->
+  <div class="orca-card mb-4">
+    <div class="orca-card-header">
+      <h5 class="orca-card-title">
+        <i class="bi bi-exclamation-diamond text-danger"></i> Automated Hydrodynamic Anomaly Log
+      </h5>
+      <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">AI Detected</span>
+    </div>
+    <div class="orca-card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0 small">
+          <thead class="text-muted">
+            <tr>
+              <th>Date &amp; Station</th>
+              <th>Parameter</th>
+              <th>Observed vs Normal</th>
+              <th>Severity</th>
+              <th>Meteorological Cause</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for anomaly in anomalies %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-white">{{ anomaly.station }}</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">{{ anomaly.date }}</div>
+                </td>
+                <td>{{ anomaly.parameter }}</td>
+                <td>
+                  <span class="fw-bold text-danger">{{ anomaly.observed }}</span>
+                  <span class="text-muted small">(norm: {{ anomaly.normal }})</span>
+                </td>
+                <td>
+                  <span class="badge {% if anomaly.severity == 'CRITICAL' %}bg-danger{% elif anomaly.severity == 'WARNING' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                    {{ anomaly.severity }}
+                  </span>
+                </td>
+                <td class="text-light small">{{ anomaly.cause }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const analyticsData = {{ analytics_json|safe }};
+    initAnalyticsCharts(analyticsData);
+  });
+</script>
+{% endblock %}

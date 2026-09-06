@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header & Map Controls -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <h3 class="fw-bold text-white mb-1">
+        <i class="bi bi-map-fill text-info me-2"></i> Ocean GIS Surveillance Map
+      </h3>
+      <p class="text-muted small mb-0">
+        Multi-layer marine geographic observation system displaying PFZ, Chlorophyll blooms, SST thermal isotherms, Cyclone tracks, and Indian Maritime Boundaries.
+      </p>
+    </div>
+
+    <!-- Map Layer Filter Controls (All 5 user-requested layers + Buoys) -->
+    <div class="d-flex flex-wrap align-items-center gap-3 bg-dark bg-opacity-75 p-2 px-3 rounded-3 border border-secondary border-opacity-25">
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="layer-toggle-pfz" checked>
+        <label class="form-check-label small fw-semibold text-white" for="layer-toggle-pfz">
+          <i class="bi bi-fish text-primary me-1"></i> PFZ
+        </label>
+      </div>
+
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="layer-toggle-chlorophyll" checked>
+        <label class="form-check-label small fw-semibold text-white" for="layer-toggle-chlorophyll">
+          <i class="bi bi-droplet-half text-info me-1"></i> Chlorophyll
+        </label>
+      </div>
+
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="layer-toggle-sst" checked>
+        <label class="form-check-label small fw-semibold text-white" for="layer-toggle-sst">
+          <i class="bi bi-thermometer-sun text-warning me-1"></i> SST
+        </label>
+      </div>
+
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="layer-toggle-cyclone" checked>
+        <label class="form-check-label small fw-semibold text-white" for="layer-toggle-cyclone">
+          <i class="bi bi-tornado text-danger me-1"></i> Cyclone
+        </label>
+      </div>
+
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="layer-toggle-boundary" checked>
+        <label class="form-check-label small fw-semibold text-white" for="layer-toggle-boundary">
+          <i class="bi bi-bounding-box-circles text-info me-1"></i> Maritime Boundary
+        </label>
+      </div>
+
+      <div class="form-check form-switch mb-0 border-start border-secondary ps-3">
+        <input class="form-check-input" type="checkbox" id="layer-toggle-buoys" checked>
+        <label class="form-check-label small fw-semibold text-white" for="layer-toggle-buoys">
+          <i class="bi bi-broadcast text-success me-1"></i> Buoys
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map + Side Sidebar Grid -->
+  <div class="row g-3">
+    <!-- Map Container -->
+    <div class="col-xl-9 col-lg-8">
+      <div class="orca-card p-2 position-relative">
+        <div id="ocean-map-container" style="height: 640px;"></div>
+        
+        <!-- Legend Overlay -->
+        <div class="position-absolute bottom-0 start-0 m-3 p-3 rounded bg-dark bg-opacity-95 border border-secondary border-opacity-50 text-white small" style="z-index: 1000; font-size: 0.78rem; max-width: 280px;">
+          <div class="fw-bold mb-2 text-info border-bottom border-secondary border-opacity-25 pb-1">
+            <i class="bi bi-layers-fill me-1"></i> Layer Legend
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span style="width:14px; height:3px; background:#00f2fe; display:inline-block; border: 1px dashed #00f2fe;"></span>
+            Indian EEZ (200 NM Outer Limit)
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span style="width:14px; height:3px; background:#1dd1a1; display:inline-block;"></span>
+            Territorial Waters (12 NM Limit)
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span style="width:12px; height:12px; border-radius:3px; background:rgba(0,210,211,0.35); border:1px dashed #00d2d3; display:inline-block;"></span>
+            Chlorophyll Bloom (>2.5 mg/m³)
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span style="width:12px; height:12px; border-radius:3px; background:rgba(255,159,67,0.35); border:1px solid #ff9f43; display:inline-block;"></span>
+            SST Thermal Front / Eddy
+          </div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span style="width:14px; height:3px; background:#ee5253; display:inline-block; border-top: 2px dashed #ee5253;"></span>
+            Cyclone Track &amp; Cone (BOB-04)
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span style="width:10px; height:10px; border-radius:50%; background:#1dd1a1; border:1px solid #fff; display:inline-block;"></span>
+            INCOIS Station Buoy
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Station List Side Panel -->
+    <div class="col-xl-3 col-lg-4">
+      <div class="orca-card h-100 d-flex flex-column">
+        <div class="orca-card-header">
+          <h6 class="orca-card-title mb-0">
+            <i class="bi bi-broadcast text-info"></i> Coastal Telemetry Nodes
+          </h6>
+          <span class="badge bg-secondary small">{{ stations|length }} Nodes</span>
+        </div>
+        <div class="orca-card-body p-2 flex-grow-1" style="max-height: 580px; overflow-y: auto;">
+          {% for st in stations %}
+            <div class="p-2 mb-2 rounded bg-black bg-opacity-25 border border-secondary border-opacity-25 hover-card" style="cursor: pointer;">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold text-white small">{{ st.name }}</span>
+                <span class="badge bg-dark text-info border border-info border-opacity-25" style="font-size:0.65rem;">{{ st.buoy_id }}</span>
+              </div>
+              <div class="d-flex align-items-center justify-content-between text-muted small" style="font-size:0.75rem;">
+                <span>{{ st.region }} &bull; {{ st.depth_m }}m</span>
+                <a href="{% url 'home' %}?station={{ st.slug }}" class="text-info fw-bold">Select &rarr;</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const stations = {{ stations_json|safe }};
+    const conditions = {{ conditions_json|safe }};
+    const pfzZones = {{ pfz_json|safe }};
+    const alerts = {{ alerts_json|safe }};
+    const geojsonLayers = {{ geojson_layers_json|safe }};
+
+    initOceanMap(stations, conditions, pfzZones, alerts, geojsonLayers);
+  });
+</script>
+{% endblock %}

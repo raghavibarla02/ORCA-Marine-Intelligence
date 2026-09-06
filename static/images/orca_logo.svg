@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="orcaGrad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00F2FE" />
+      <stop offset="1" stop-color="#4FACFE" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="10" y1="20" x2="38" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00D2D3" />
+      <stop offset="1" stop-color="#0F2540" />
+    </linearGradient>
+  </defs>
+  <!-- Background subtle circle -->
+  <circle cx="24" cy="24" r="22" fill="#0A192F" stroke="#00D2D3" stroke-width="2" stroke-opacity="0.4"/>
+  <!-- Sonar radar ring -->
+  <circle cx="24" cy="24" r="16" stroke="#00F2FE" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="3 3"/>
+  <!-- Stylized Orca / Marine Wave Surge -->
+  <path d="M12 32C14.5 25.5 19 21 24 21C27.5 21 31 23.5 33 26C35 22 36.5 16 35 11C32 15 29 18 25 18C18 18 13 24 12 32Z" fill="url(#orcaGrad)"/>
+  <!-- Wave base crest -->
+  <path d="M8 34C13 31 18 35 24 35C30 35 35 31 40 33C37 37 31 39 24 39C17 39 11 37 8 34Z" fill="url(#tealGrad)" opacity="0.9"/>
+  <!-- Digital beacon ping -->
+  <circle cx="35" cy="11" r="2.5" fill="#00F2FE"/>
+  <circle cx="35" cy="11" r="5" stroke="#00F2FE" stroke-width="1" opacity="0.6"/>
+</svg>

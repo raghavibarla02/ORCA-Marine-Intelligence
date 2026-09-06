@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-white mb-1">
+        <i class="bi bi-compass-fill text-info me-2"></i> Potential Fishing Zones (PFZ) &amp; Safe Route Navigation
+      </h3>
+      <p class="text-muted small mb-0">
+        Satellite-derived fishing heatmaps and productivity scoring combined with algorithmic hazard avoidance routing.
+      </p>
+    </div>
+
+    <!-- INCOIS Model Sync Status -->
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-success bg-opacity-25 text-success border border-success px-3 py-2">
+        <i class="bi bi-check2-circle me-1"></i> INCOIS PFZ Model Synced (Chlorophyll &gt; 2.5 mg/m³)
+      </span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Safe Route Navigation Planner -->
+  <div class="orca-card mb-4">
+    <div class="orca-card-header">
+      <h5 class="orca-card-title">
+        <i class="bi bi-bezier2 text-info"></i> Marine Navigational Route Safety &amp; Productivity Planner
+      </h5>
+      <div class="d-flex align-items-center gap-2">
+        <label for="route-selector" class="small text-muted mb-0">Select Transit Corridor:</label>
+        <select id="route-selector" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: auto;">
+          {% for r_key, route_item in routes.items %}
+            <option value="{{ r_key }}" {% if r_key == current_route.key %}selected{% endif %}>
+              {{ route_item.origin }} &rarr; {{ route_item.destination }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="orca-card-body">
+      <!-- Route Metrics Summary Bar (Distance, Travel Time, Productivity Score, Safety) -->
+      <div class="row g-3 mb-3">
+        <!-- 1. Distance & Travel Time -->
+        <div class="col-md-3">
+          <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 h-100">
+            <div class="text-muted small">Route Distance &amp; Travel Time</div>
+            <div class="fs-3 fw-bold text-white" id="route-dist">{{ current_route.distance_nm }} <span class="fs-6 text-muted">NM</span></div>
+            <div class="text-info small mt-1">
+              <i class="bi bi-stopwatch me-1"></i> Est. <strong>{{ current_route.est_time_hours }} hrs</strong> @ 15 kts
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Fishing Productivity Score -->
+        <div class="col-md-3">
+          <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 h-100">
+            <div class="text-muted small">Pelagic Productivity Score</div>
+            <div class="fs-3 fw-bold text-success" id="route-productivity">{{ current_route.productivity_score }} <span class="fs-6 text-muted">/ 100</span></div>
+            <div class="productivity-meter mt-2">
+              <div class="productivity-meter-fill" id="route-productivity-bar" style="width: {{ current_route.productivity_score }}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Safety Score & Status -->
+        <div class="col-md-3">
+          <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 h-100">
+            <div class="text-muted small">Corridor Safety Score</div>
+            <div class="fs-3 fw-bold text-{{ current_route.status_badge }}" id="route-score">{{ current_route.safety_score }} <span class="fs-6 text-muted">/ 100</span></div>
+            <span class="badge bg-{{ current_route.status_badge }} bg-opacity-25 text-{{ current_route.status_badge }} border border-{{ current_route.status_badge }} mt-1" id="route-badge">
+              {{ current_route.safety_status }}
+            </span>
+          </div>
+        </div>
+
+        <!-- 4. Fuel Efficiency -->
+        <div class="col-md-3">
+          <div class="p-3 rounded bg-black bg-opacity-30 border border-secondary border-opacity-25 h-100">
+            <div class="text-muted small">Fuel Efficiency &amp; Hazards</div>
+            <div class="fs-6 fw-bold text-white mt-1" id="route-fuel">{{ current_route.fuel_efficiency }}</div>
+            <div class="text-warning small mt-1" id="route-hazards">
+              <i class="bi bi-shield-slash me-1"></i> {{ current_route.hazards_on_path|length }} Hazard Zone(s) Avoided
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route Advisory Callout -->
+      <div class="alert alert-{{ current_route.status_badge }} bg-opacity-10 border-{{ current_route.status_badge }} text-white mb-3" id="route-advisory">
+        <i class="bi bi-info-circle-fill me-2 text-{{ current_route.status_badge }}"></i>
+        <strong>Captain's Navigational Advisory:</strong> {{ current_route.advisory }}
+      </div>
+
+      <!-- Route Visualization Legend -->
+      <div class="d-flex flex-wrap align-items-center gap-3 mb-2 p-2 rounded bg-black bg-opacity-30 small">
+        <span class="text-muted fw-bold">Map Visualization:</span>
+        <span class="route-legend-badge bg-success bg-opacity-25 text-success border border-success">
+          <span style="width:14px; height:3px; background:#1dd1a1; display:inline-block;"></span> Recommended Safest Route
+        </span>
+        <span class="route-legend-badge bg-danger bg-opacity-25 text-danger border border-danger">
+          <span style="width:14px; height:3px; background:#ff6b6b; display:inline-block; border-top:2px dashed #ff6b6b;"></span> Risky Direct Route (Hazard Intersect)
+        </span>
+        <span class="route-legend-badge bg-info bg-opacity-25 text-info border border-info">
+          <span style="width:10px; height:10px; border-radius:50%; background:rgba(0,210,211,0.5); display:inline-block;"></span> Fishing Heatmap Density
+        </span>
+      </div>
+
+      <!-- Route Map + Waypoint Table -->
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <div id="route-map-container" style="height: 400px;" class="rounded"></div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="table-responsive rounded border border-secondary border-opacity-25" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-dark table-hover align-middle mb-0 small">
+              <thead class="text-muted">
+                <tr>
+                  <th>Waypoint (Safe Track)</th>
+                  <th>Wave</th>
+                  <th>Wind</th>
+                  <th>Risk</th>
+                </tr>
+              </thead>
+              <tbody id="route-waypoints-body">
+                {% for wp in current_route.safe_route_waypoints %}
+                  <tr>
+                    <td>
+                      <div class="fw-bold text-white">{{ wp.name }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">{{ wp.lat }}°N, {{ wp.lon }}°E</div>
+                    </td>
+                    <td>{{ wp.wave_m }} m</td>
+                    <td>{{ wp.wind_kt }} kt</td>
+                    <td>
+                      <span class="badge {% if wp.risk == 'High' %}bg-danger{% elif wp.risk == 'Moderate' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ wp.risk }}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 2: Potential Fishing Zones (PFZ) Advisories -->
+  <div class="orca-card">
+    <div class="orca-card-header">
+      <h5 class="orca-card-title">
+        <i class="bi bi-fish text-success"></i> INCOIS Potential Fishing Zones (PFZ) Advisories
+      </h5>
+      <span class="badge bg-info bg-opacity-25 text-info">Chlorophyll-a &amp; SST Front Correlation</span>
+    </div>
+
+    <div class="orca-card-body">
+      <div class="row g-3">
+        {% for pfz in pfz_zones %}
+          <div class="col-xl-4 col-md-6">
+            <div class="p-3 rounded bg-dark bg-opacity-50 border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-between">
+              <div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="badge bg-success bg-opacity-25 text-success border border-success">{{ pfz.productivity_score }}/100 Yield</span>
+                  <span class="badge bg-dark text-info border border-secondary border-opacity-50 small">{{ pfz.coast }}</span>
+                </div>
+                <h6 class="fw-bold text-white mb-1">{{ pfz.name }}</h6>
+                <div class="text-muted small mb-2">
+                  <i class="bi bi-geo-alt me-1 text-info"></i> {{ pfz.distance_km }} km offshore &bull; Bearing: {{ pfz.bearing }}
+                </div>
+
+                <div class="bg-black bg-opacity-30 p-2 rounded small mb-2">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">🌿 Chlorophyll:</span>
+                    <span class="text-white fw-bold">{{ pfz.chlorophyll }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">🌡️ SST Front:</span>
+                    <span class="text-white fw-bold">{{ pfz.sst_gradient }}</span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span class="text-muted">⚓ Depth Range:</span>
+                    <span class="text-white fw-bold">{{ pfz.depth_range }}</span>
+                  </div>
+                </div>
+
+                <div class="small text-muted mb-2">
+                  <strong class="text-light">Target Catch:</strong>
+                  {% for sp in pfz.expected_species %}
+                    <span class="badge bg-secondary bg-opacity-50 text-white me-1">{{ sp }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                <span class="badge bg-success text-dark fw-bold">{{ pfz.fuel_saving_est }}</span>
+                <a href="{% url 'ocean_map' %}" class="btn btn-sm btn-outline-info" style="font-size:0.75rem;">
+                  Plot on GIS Map &rarr;
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const currentRoute = {{ current_route_json|safe }};
+    const allRoutes = {{ all_routes_json|safe }};
+    const heatmapPoints = {{ heatmap_points_json|safe }};
+
+    // Initialize Route Map with Fishing Heatmap & Safest vs Risky Routes
+    initRouteMapWithHeatmap(currentRoute, heatmapPoints);
+
+    // Handle Route Selector Dropdown
+    const selector = document.getElementById('route-selector');
+    if (selector) {
+      selector.addEventListener('change', (e) => {
+        const selectedKey = e.target.value;
+        const newRoute = allRoutes[selectedKey];
+        if (newRoute) {
+          document.getElementById('route-dist').innerHTML = `${newRoute.distance_nm} <span class="fs-6 text-muted">NM</span>`;
+          document.getElementById('route-score').innerHTML = `${newRoute.safety_score} <span class="fs-6 text-muted">/ 100</span>`;
+          document.getElementById('route-score').className = `fs-3 fw-bold text-${newRoute.status_badge}`;
+          
+          if (newRoute.productivity_score) {
+            document.getElementById('route-productivity').innerHTML = `${newRoute.productivity_score} <span class="fs-6 text-muted">/ 100</span>`;
+            document.getElementById('route-productivity-bar').style.width = `${newRoute.productivity_score}%`;
+          }
+
+          const badgeEl = document.getElementById('route-badge');
+          badgeEl.textContent = newRoute.safety_status;
+          badgeEl.className = `badge bg-${newRoute.status_badge} bg-opacity-25 text-${newRoute.status_badge} border border-${newRoute.status_badge} mt-1`;
+          
+          document.getElementById('route-fuel').textContent = newRoute.fuel_efficiency;
+          document.getElementById('route-hazards').innerHTML = `<i class="bi bi-shield-slash me-1"></i> ${newRoute.hazards_on_path.length} Hazard Zone(s) Avoided`;
+          
+          const advEl = document.getElementById('route-advisory');
+          advEl.className = `alert alert-${newRoute.status_badge} bg-opacity-10 border-${newRoute.status_badge} text-white mb-3`;
+          advEl.innerHTML = `<i class="bi bi-info-circle-fill me-2 text-${newRoute.status_badge}"></i><strong>Captain's Navigational Advisory:</strong> ${newRoute.advisory}`;
+
+          // Update Waypoints Table
+          const tbody = document.getElementById('route-waypoints-body');
+          tbody.innerHTML = '';
+          const wps = newRoute.safe_route_waypoints || newRoute.waypoints || [];
+          wps.forEach(wp => {
+            const tr = document.createElement('tr');
+            const riskClass = wp.risk === 'High' ? 'bg-danger' : (wp.risk === 'Moderate' ? 'bg-warning text-dark' : 'bg-success');
+            tr.innerHTML = `
+              <td>
+                <div class="fw-bold text-white">${wp.name}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">${wp.lat}°N, ${wp.lon}°E</div>
+              </td>
+              <td>${wp.wave_m} m</td>
+              <td>${wp.wind_kt} kt</td>
+              <td><span class="badge ${riskClass}">${wp.risk}</span></td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          // Re-render route comparison
+          renderRouteComparison(newRoute);
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
